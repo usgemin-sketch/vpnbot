@@ -1,12 +1,8 @@
 package com.brawlvpn.app
 
-import android.app.Activity
-import android.net.VpnService
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -45,12 +41,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -71,31 +63,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val state by viewModel.uiState.collectAsState()
-            var awaitingVpnPermission by remember { mutableStateOf(false) }
-            val launcher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartActivityForResult()
-            ) { result ->
-                awaitingVpnPermission = false
-                if (result.resultCode == Activity.RESULT_OK) {
-                    viewModel.connectSelectedCountry()
-                } else {
-                    viewModel.showError("VPN permission is required before connecting.")
-                }
-            }
-
-            LaunchedEffect(state.launchVpnPermissionPrompt) {
-                if (state.launchVpnPermissionPrompt && !awaitingVpnPermission) {
-                    val intent = VpnService.prepare(this@MainActivity)
-                    if (intent == null) {
-                        viewModel.connectSelectedCountry()
-                    } else {
-                        awaitingVpnPermission = true
-                        launcher.launch(intent)
-                    }
-                    viewModel.onVpnPromptHandled()
-                }
-            }
-
             BrawlVpnTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -221,7 +188,7 @@ private fun BrawlVpnScreen(
 
     if (state.editor != null) {
         ConfigEditorDialog(
-            title = "WireGuard config for ${state.editor.countryName}",
+            title = "Country note for ${state.editor.countryName}",
             value = state.editor.configText,
             onValueChanged = onEditorChanged,
             onSave = onEditorSaved,
@@ -438,7 +405,7 @@ private fun TipsCard() {
                 fontSize = 18.sp
             )
             Text(
-                text = "1. Paste a real WireGuard config for each country.\n2. The app auto-injects Null's DNS.\n3. Tap Connect and approve VPN permission.",
+                text = "1. Choose a country.\n2. Tap the big button to enable the VPN shell.\n3. Tap again to disable it.",
                 color = Color(0xFFD3E2F2),
                 lineHeight = 22.sp
             )
@@ -535,12 +502,12 @@ private fun CountryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (country.hasConfig) "Config saved" else "Needs config",
+                    text = if (country.hasConfig) "Note saved" else "Ready",
                     color = if (country.hasConfig) Color(0xFF8AF5E9) else Color(0xFFFF9B7A),
                     fontWeight = FontWeight.SemiBold
                 )
                 TextButton(onClick = onConfigurePressed) {
-                    Text(if (country.hasConfig) "Edit config" else "Set config")
+                    Text(if (country.hasConfig) "Edit note" else "Open note")
                 }
             }
         }
@@ -579,7 +546,7 @@ private fun ConfigEditorDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Paste a full wg-quick config with [Interface] and [Peer] sections.",
+                    text = "You can keep a short note for this country here.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
