@@ -8,6 +8,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,9 +53,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -117,6 +128,17 @@ private fun BrawlVpnScreen(
     onEditorDismissed: () -> Unit,
     onRetryAccess: () -> Unit
 ) {
+    val ambient = rememberInfiniteTransition(label = "ambient")
+    val drift by ambient.animateFloat(
+        initialValue = 0.15f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 5200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "drift"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -130,6 +152,24 @@ private fun BrawlVpnScreen(
                 )
             )
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(
+                color = Color(0xFF2CD5C4).copy(alpha = 0.12f * drift),
+                radius = size.minDimension * (0.34f + 0.04f * drift),
+                center = Offset(size.width * 0.16f, size.height * 0.14f)
+            )
+            drawCircle(
+                color = Color(0xFFFF7A59).copy(alpha = 0.08f + 0.06f * drift),
+                radius = size.minDimension * 0.38f,
+                center = Offset(size.width * 0.92f, size.height * 0.26f)
+            )
+            drawCircle(
+                color = Color(0xFFFFD24A).copy(alpha = 0.07f),
+                radius = size.minDimension * 0.24f,
+                center = Offset(size.width * 0.45f, size.height * 0.88f)
+            )
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -210,8 +250,27 @@ private fun HeroCard(
     busy: Boolean,
     onConnectPressed: () -> Unit
 ) {
+    val isConnected = buttonLabel == "Disconnect"
+    val pulseTransition = rememberInfiniteTransition(label = "pulse")
+    val pulse by pulseTransition.animateFloat(
+        initialValue = 0.82f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = if (isConnected) 1100 else 2000,
+                easing = FastOutSlowInEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+    val cardTint by animateColorAsState(
+        targetValue = if (isConnected) Color(0xE3193A34) else Color(0xD8172536),
+        label = "cardTint"
+    )
+
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xD8172536)),
+        colors = CardDefaults.cardColors(containerColor = cardTint),
         shape = RoundedCornerShape(30.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -224,11 +283,33 @@ private fun HeroCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_power_orbit),
-                    contentDescription = null,
-                    modifier = Modifier.size(54.dp)
-                )
+                Box(
+                    modifier = Modifier.size(76.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF2CD5C4).copy(alpha = 0.20f * pulse),
+                                    Color.Transparent
+                                )
+                            ),
+                            radius = size.minDimension * 0.48f * pulse
+                        )
+                        drawCircle(
+                            color = if (isConnected) Color(0xFF8AF5E9) else Color(0x44FFFFFF),
+                            radius = size.minDimension * 0.38f,
+                            style = Stroke(width = 4.dp.toPx()),
+                            alpha = 0.55f
+                        )
+                    }
+                    Image(
+                        painter = painterResource(R.drawable.ic_power_orbit),
+                        contentDescription = null,
+                        modifier = Modifier.size(56.dp)
+                    )
+                }
                 Column {
                     Text(
                         text = "Brawl VPN",
@@ -248,11 +329,24 @@ private fun HeroCard(
                 color = Color(0xFFD3E2F2),
                 lineHeight = 22.sp
             )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SignalChip(
+                    label = if (isConnected) "Live Tunnel" else "Standby",
+                    accent = if (isConnected) Color(0xFF2CD5C4) else Color(0xFFFFD24A)
+                )
+                SignalChip(
+                    label = if (busy) "Syncing" else "Country Ready",
+                    accent = Color(0xFFFF7A59)
+                )
+            }
             Button(
                 onClick = onConnectPressed,
                 enabled = !busy,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFFD24A),
+                    containerColor = if (isConnected) Color(0xFF2CD5C4) else Color(0xFFFFD24A),
                     contentColor = Color(0xFF171B22)
                 ),
                 shape = RoundedCornerShape(18.dp)
@@ -272,13 +366,34 @@ private fun SetupCard(
     transfer: String,
     handshake: String
 ) {
+    val flow = rememberInfiniteTransition(label = "flow")
+    val shimmer by flow.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer"
+    )
+
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF101A27)),
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0x222CD5C4).copy(alpha = 0.15f + shimmer * 0.08f),
+                            Color.Transparent,
+                            Color(0x22FFD24A).copy(alpha = 0.08f)
+                        )
+                    )
+                )
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -336,7 +451,20 @@ private fun CountryCard(
     onConfigurePressed: () -> Unit
 ) {
     val accent = Color(country.accentColor)
-    val borderColor = if (isSelected) accent else Color.Transparent
+    val borderGlow by animateColorAsState(
+        targetValue = if (isSelected) accent.copy(alpha = 0.28f) else Color.Transparent,
+        label = "borderGlow"
+    )
+    val selectMotion = rememberInfiniteTransition(label = "selectMotion")
+    val selectedAlpha by selectMotion.animateFloat(
+        initialValue = 0.22f,
+        targetValue = 0.42f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "selectedAlpha"
+    )
 
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xD8162130)),
@@ -352,7 +480,10 @@ private fun CountryCard(
                 .background(
                     if (isSelected) {
                         Brush.linearGradient(
-                            colors = listOf(borderColor.copy(alpha = 0.16f), Color.Transparent)
+                            colors = listOf(
+                                borderGlow.copy(alpha = selectedAlpha),
+                                Color.Transparent
+                            )
                         )
                     } else {
                         Brush.linearGradient(colors = listOf(Color.Transparent, Color.Transparent))
@@ -382,7 +513,7 @@ private fun CountryCard(
                             fontSize = 18.sp
                         )
                         Text(
-                            text = "${country.city} • ${country.endpointHint}",
+                            text = "${country.city} - ${country.endpointHint}",
                             color = Color(0xFF93A9C1),
                             fontSize = 13.sp
                         )
@@ -484,6 +615,32 @@ private fun Badge(text: String) {
             color = Color(0xFF8AF5E9),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun SignalChip(label: String, accent: Color) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(accent.copy(alpha = 0.14f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(accent)
+                .alpha(0.95f)
+        )
+        Text(
+            text = label,
+            color = Color.White,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
