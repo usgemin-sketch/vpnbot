@@ -8,3 +8,5 @@ local.properties
 *.log
 _vendor/
 *.tmp
+_android_sdk_dl/
+_android_sdk_extract/
