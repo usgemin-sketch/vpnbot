@@ -55,6 +55,20 @@ jobs:
           path: apps/android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
+      - name: Surface Gradle error snippet
+        if: steps.build.outcome != 'success'
+        shell: bash
+        run: |
+          tail -n 120 build.log > build-tail.txt
+          message=$(python3 - <<'PY'
+from pathlib import Path
+text = Path("build-tail.txt").read_text(encoding="utf-8", errors="ignore")
+text = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+print(text)
+PY
+)
+          echo "::error file=apps/android-app/build.log,line=1,title=Gradle build failed::$message"
+
       - name: Fail workflow if build failed
         if: steps.build.outcome != 'success'
         run: exit 1
