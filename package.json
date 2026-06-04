@@ -1,0 +1,9 @@
+{
+  "name": "brawl-vpn-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix apps/bot-api install && npm --prefix apps/bot-api run build",
+    "start": "npm --prefix apps/bot-api run start",
+    "check": "npm --prefix apps/bot-api run check"
+  }
+}

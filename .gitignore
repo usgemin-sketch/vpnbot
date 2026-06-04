@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.idea/
+.gradle/
+build/
+local.properties
+*.log
