@@ -54,7 +54,7 @@ object CountryCatalog {
 [Interface]
 PrivateKey =
 Address = $address
-DNS = 1.1.1.1
+DNS = ${NullsDns.wireGuardLine}
 
 [Peer]
 PublicKey =

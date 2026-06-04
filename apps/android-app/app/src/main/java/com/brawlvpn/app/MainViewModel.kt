@@ -3,9 +3,11 @@ package com.brawlvpn.app
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.brawlvpn.app.data.ConfigNormalizer
 import com.brawlvpn.app.data.CountryCatalog
 import com.brawlvpn.app.data.CountryConfigStore
 import com.brawlvpn.app.data.CountryProfile
+import com.brawlvpn.app.data.NullsDns
 import com.brawlvpn.app.vpn.TunnelSnapshot
 import com.brawlvpn.app.vpn.WireGuardManager
 import kotlinx.coroutines.Job
@@ -38,10 +40,11 @@ data class HomeUiState(
     val selectedCountryId: String = "",
     val activeCountryName: String = "Not connected",
     val statusTitle: String = "Ready for setup",
-    val statusDetail: String = "Add a real WireGuard config for a country, then connect.",
+    val statusDetail: String = "Add a real WireGuard config for a country, then connect with built-in Null's DNS.",
     val primaryButtonLabel: String = "Enable VPN",
     val transferText: String = "0 B down / 0 B up",
     val handshakeText: String = "No handshake yet",
+    val dnsText: String = NullsDns.hostname,
     val editor: EditorUiState? = null,
     val errorMessage: String? = null,
     val isBusy: Boolean = false,
@@ -95,7 +98,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             setBusy(true)
             try {
-                val snapshot = wireGuardManager.connect(selected, configText)
+                val snapshot = wireGuardManager.connect(
+                    selected,
+                    ConfigNormalizer.withNullsDns(configText)
+                )
                 applySnapshot(snapshot, selected.name)
                 beginStatsLoop()
             } catch (cancelled: CancellationException) {
@@ -126,7 +132,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveEditor() {
         val editor = _uiState.value.editor ?: return
-        configStore.write(editor.countryId, editor.configText.trim())
+        configStore.write(editor.countryId, ConfigNormalizer.withNullsDns(editor.configText.trim()))
         _uiState.value = buildState(
             selectedCountryId = editor.countryId,
             activeCountryName = _uiState.value.activeCountryName,
@@ -200,7 +206,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             activeCountryName = activeCountryName,
             statusTitle = if (snapshot.isUp) "Connected" else "Tunnel offline",
             statusDetail = if (snapshot.isUp) {
-                "Traffic is routed through WireGuard. You can switch countries any time."
+                "Traffic is routed through WireGuard with Null's DNS. You can switch countries any time."
             } else {
                 "Choose a country and connect when you are ready."
             },
@@ -226,7 +232,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             selectedCountryId = selectedCountryId,
             activeCountryName = "Not connected",
             statusTitle = "Ready for setup",
-            statusDetail = "Add a real WireGuard config for a country, then connect.",
+            statusDetail = "Add a real WireGuard config for a country, then connect with built-in Null's DNS.",
             primaryButtonLabel = "Enable VPN",
             transferText = "0 B down / 0 B up",
             handshakeText = "No handshake yet",
@@ -263,6 +269,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             primaryButtonLabel = primaryButtonLabel,
             transferText = transferText,
             handshakeText = handshakeText,
+            dnsText = NullsDns.hostname,
             editor = null,
             errorMessage = null,
             isBusy = isBusy

@@ -190,7 +190,8 @@ private fun BrawlVpnScreen(
                 SetupCard(
                     activeCountry = state.activeCountryName,
                     transfer = state.transferText,
-                    handshake = state.handshakeText
+                    handshake = state.handshakeText,
+                    dns = state.dnsText
                 )
             }
 
@@ -364,7 +365,8 @@ private fun HeroCard(
 private fun SetupCard(
     activeCountry: String,
     transfer: String,
-    handshake: String
+    handshake: String,
+    dns: String
 ) {
     val flow = rememberInfiniteTransition(label = "flow")
     val shimmer by flow.animateFloat(
@@ -411,6 +413,7 @@ private fun SetupCard(
                 )
             }
             StatRow(label = "Active route", value = activeCountry)
+            StatRow(label = "Null's DNS", value = dns)
             StatRow(label = "Transfer", value = transfer)
             StatRow(label = "Last handshake", value = handshake)
         }
@@ -435,7 +438,7 @@ private fun TipsCard() {
                 fontSize = 18.sp
             )
             Text(
-                text = "1. Paste a real WireGuard config for each country.\n2. Save it inside the app.\n3. Tap Connect and approve VPN permission.",
+                text = "1. Paste a real WireGuard config for each country.\n2. The app auto-injects Null's DNS.\n3. Tap Connect and approve VPN permission.",
                 color = Color(0xFFD3E2F2),
                 lineHeight = 22.sp
             )
