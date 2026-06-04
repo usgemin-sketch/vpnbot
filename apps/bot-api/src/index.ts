@@ -16,7 +16,9 @@ app.get("/health", (_req, res) => {
 if (config.WEBHOOK_URL) {
   const webhookPath = `/telegram/${config.WEBHOOK_SECRET}`;
 
-  app.use(bot.webhookCallback(webhookPath));
+  app.post(webhookPath, async (req, res) => {
+    await bot.handleUpdate(req.body, res);
+  });
 
   app.listen(config.PORT, async () => {
     await bot.telegram.setWebhook(`${config.WEBHOOK_URL}${webhookPath}`);
