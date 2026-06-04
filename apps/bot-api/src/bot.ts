@@ -1,5 +1,6 @@
 import type { Context, Telegraf } from "telegraf";
 import { Markup } from "telegraf";
+import { grantPaidAccess, hasPaidAccess } from "./access.js";
 import { copy } from "./copy.js";
 import { createPrivateChannelInvite } from "./invite.js";
 import { mainKeyboard } from "./keyboards.js";
@@ -35,6 +36,14 @@ export function registerBot(bot: Telegraf<Context>) {
 
   bot.action("restore_access", async (ctx) => {
     await ctx.answerCbQuery();
+
+    const userId = ctx.from?.id;
+
+    if (!userId || !(await hasPaidAccess(userId))) {
+      await ctx.reply(copy.noAccessYet, mainKeyboard);
+      return;
+    }
+
     await sendFreshInvite(ctx, bot);
   });
 
@@ -62,6 +71,7 @@ export function registerBot(bot: Telegraf<Context>) {
       return;
     }
 
+    await grantPaidAccess(ctx.from.id);
     await sendFreshInvite(ctx, bot);
   });
 
