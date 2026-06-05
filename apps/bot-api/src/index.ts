@@ -2,9 +2,11 @@ import express from "express";
 import { Telegraf } from "telegraf";
 import { registerBot } from "./bot.js";
 import { config } from "./config.js";
+import { startPromoLoop } from "./promo.js";
 
 const bot = new Telegraf(config.BOT_TOKEN);
 registerBot(bot);
+startPromoLoop(bot);
 
 const app = express();
 app.use(express.json());

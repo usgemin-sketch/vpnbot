@@ -5,6 +5,7 @@ import { copy } from "./copy.js";
 import { createPrivateChannelInvite } from "./invite.js";
 import { mainKeyboard } from "./keyboards.js";
 import { isForeverPayload, sendForeverInvoice } from "./payments.js";
+import { rememberSubscriberChat } from "./subscribers.js";
 
 async function sendFreshInvite(ctx: Context, bot: Telegraf<Context>) {
   try {
@@ -21,6 +22,14 @@ async function sendFreshInvite(ctx: Context, bot: Telegraf<Context>) {
 }
 
 export function registerBot(bot: Telegraf<Context>) {
+  bot.use(async (ctx, next) => {
+    if (ctx.chat?.type === "private") {
+      await rememberSubscriberChat(ctx.chat.id);
+    }
+
+    return next();
+  });
+
   bot.start(async (ctx) => {
     await ctx.reply(copy.welcome, mainKeyboard);
   });
